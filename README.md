@@ -1,1 +1,1 @@
-# 19739-cms-api-sample-video-sitemap-generator
+# CMS API Sample: Video Sitemap Generator
