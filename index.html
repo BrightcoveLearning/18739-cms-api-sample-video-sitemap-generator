@@ -18,7 +18,7 @@
   <section class="bcls-section">
   <h2 id="Sitemap_generator">Video Sitemap Generator</h2>
 
-  <p>You can use the form below to generate a sample MRSS feed either for your own account or for a sample Brightcove account.</p>
+  <p>You can use the form below to generate a video sitemap either for your own account or for a sample Brightcove account.</p>
 
   <fieldset class="bcls-fieldset">
     <legend>Input</legend>
@@ -50,14 +50,14 @@
           <em>Internal</em>
         </strong>
         name of the custom field:
-        <input type="text" id="customFieldName" value="" placeholder="page_url"></p>
+        <input type="text" id="customFieldName" value="page_url" placeholder="page_url"></p>
     </div>
 
     <div class="option" id="singlePage">
       <p>Page URL:
         <input type="text" id="pageURL" value="" placeholder="https:my.site.net/videos.html" size="60"></p>
       <p>URL parameter for id:
-        <input type="text" id="urlParam" value="" placeholder="videoId"></p>
+        <input type="text" id="urlParam" value="videoId" placeholder="videoId"></p>
       <p>URL parameter value is the:</p>
       <div>
         <input type="radio" class="idType" id="vidId" name="idType" value="id" checked="checked">
@@ -130,7 +130,7 @@
     <pre>
 <code id="apiRequest">api request will appear here...</code></pre>
 
-    <p>Generated MRSS feed</p>
+    <p>Generated sitemap</p>
     <textarea id="feedDisplay" style="width:95%;height:30em;"></textarea>
   </fieldset>
 </section>
