@@ -14,8 +14,8 @@ var BCLS = (function(window, document, vkbeautify) {
     eTitle = '</video:title>',
     sDescription = '<video:description>',
     eDescription = '</video:description>',
-    sContent_loc = '<video:content_loc>',
-    eContent_loc = '</video:content_loc>',
+    sPlayer_loc =  '<video:player_loc>',
+    ePlayer_loc = '</video:player_loc>',
     sDuration = '<video:duration>',
     eDuration = '</video:duration>',
     sExpiration = '<video:expiration_date>',
@@ -33,6 +33,7 @@ var BCLS = (function(window, document, vkbeautify) {
     account_id_default = '1485884786001',
     client_id,
     client_secret,
+    custom_field_default = 'page_url',
     // api stuff
     proxyURL = 'https://solutions.brightcove.com/bcls/bcls-proxy/bcls-proxy-v2.php',
     baseURL = 'https://cms.api.brightcove.com/v1/accounts/',
@@ -170,51 +171,6 @@ var BCLS = (function(window, document, vkbeautify) {
     b.removeAttribute('disabled');
   }
 
-  /**
-   * sort an array of objects based on an object property
-   * @param {array} targetArray - array to be sorted
-   * @param {string|number} objProperty - object property to sort on
-   * @return sorted array
-   */
-  function sortArray(targetArray, objProperty) {
-    targetArray.sort(function(b, a) {
-      var propA = a[objProperty],
-        propB = b[objProperty];
-      // sort ascending; reverse propA and propB to sort descending
-      if (propA < propB) {
-        return -1;
-      } else if (propA > propB) {
-        return 1;
-      } else {
-        return 0;
-      }
-    });
-    return targetArray;
-  }
-
-  /**
-   * find the best MP4 source
-   *
-   * @param   {array}  sources  array of source objects for a video
-   *
-   * @return  {string}  the src for best MP4 or null if none
-   */
-  function processSources(sources) {
-    var i = sources.length;
-    // remove non-MP4 sources
-    while (i > 0) {
-      i--;
-      if (sources[i].container !== 'MP4') {
-        sources.splice(i, 1);
-      } else if (hasProperty(sources[i], 'stream_name')) {
-        sources.splice(i, 1);
-      }
-    }
-    // sort sources by encoding rate
-    sortArray(sources, 'encoding_rate');
-    // return the first item (highest bitrate)
-    return sources[0].src;
-  }
 
   function addItems() {
     var i,
@@ -275,7 +231,7 @@ var BCLS = (function(window, document, vkbeautify) {
           }
         } else {
           // URL stored in custom field
-          fieldName = customFieldName.value;
+          fieldName = (isDefined(customFieldName.value) ) ? customFieldName.value : custom_field_default;
           if (hasProperty(video.custom_fields, fieldName)) {
             video.loc = video.custom_fields[fieldName];
           } else {
@@ -295,15 +251,17 @@ var BCLS = (function(window, document, vkbeautify) {
           continue;
         }
 
+        // at this point, the video should be ok to include
+        video.player_loc = 'https://players.brightcove.net/' + account_id + '/default_default/index.html?videoId=' + video.id;
         video.freqSelect = getSelectedValue(freqSelect) !== 'null' ? getSelectedValue(freqSelect) : null;
 
         mapStr += sUrl;
-        mapStr += sLoc + video.loc + eLoc;
+        mapStr += sLoc + sCdata + video.loc + eCdata + eLoc;
         mapStr += sVideo;
-        mapStr += sThumbnail + video.thumbnailURL + eThumbnail;
-        mapStr += sTitle + video.name + eTitle;
+        mapStr += sThumbnail + sCdata + video.thumbnailURL + eCdata + eThumbnail;
+        mapStr += sTitle + sCdata + video.name + eCdata + eTitle;
         mapStr += sDescription + sCdata + video.description + eCdata + eDescription;
-        mapStr += sContent_loc + video.content_loc + eContent_loc;
+        mapStr += sPlayer_loc + sCdata + video.player_loc + eCdata + ePlayer_loc;
         mapStr += sDuration + Math.round((video.duration / 1000)) + eDuration;
         if (isDefined(video.expiration_date)) {
           mapStr += sExpiration + video.expiration_date + eExpiration;
@@ -389,7 +347,7 @@ var BCLS = (function(window, document, vkbeautify) {
             logger.textContent = 'Getting video set ' + callNumber;
             createRequest('getVideos');
           } else {
-            logger.textContent = 'Video data for ' + totalVideos + ' retrieved; getting views and sources';
+            logger.textContent = 'Video data for ' + totalVideos + ' retrieved; getting video views';
             callNumber = 0;
             totalCalls = videosArray.length;
             createRequest('getVideoViews');
@@ -402,43 +360,11 @@ var BCLS = (function(window, document, vkbeautify) {
         logger.textContent = 'Getting alltime views for video ' + (callNumber + 1) + ' of ' + totalCalls;
         makeRequest(options, function(response) {
           videosArray[callNumber].view_count = JSON.parse(response).alltime_video_views;
-          createRequest('getVideoSources');
-        });
-        break;
-      case 'getVideoSources':
-        var i,
-          iMax = videosArray.length;
-        endPoint = account_id + '/videos/' + videosArray[callNumber].id + '/sources';
-        options.url = baseURL + endPoint;
-        options.requestType = 'GET';
-        apiRequest.textContent = options.url;
-        logger.textContent = 'Getting sources for video ' + videosArray[callNumber].name;
-        makeRequest(options, function(response) {
-          sources = JSON.parse(response);
-          if (sources.length > 0) {
-            // get the best MP4 rendition
-            var source = processSources(sources);
-            videosArray[callNumber].content_loc = source;
-          } else {
-            // video has no sources
-            videosArray[callNumber].content_loc = null;
-          }
           callNumber++;
           if (callNumber < totalCalls) {
-            createRequest('getVideoSources');
+            createRequest('getVideoViews');
           } else {
-            // remove videos with no sources
-            
-            i = videosArray.length;
-            while (i > 0) {
-              i--;
-              if (!isDefined(videosArray[i].content_loc)) {
-                console.log('no mp4 skip', videosArray[i].video_id);
-                videosArray.splice(i, 1);
-              }
-            }
-            
-            logger.textContent = 'Sources retrieved. Generating sitemap...';
+            logger.textContent = 'Video views retrieved; generating sitemap...';
             addItems();
           }
         });
